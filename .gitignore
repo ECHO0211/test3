@@ -1,0 +1,7 @@
+# 这个文件告诉git，下列这些文件不需要管理
+*.efi
+*.o
+*.so
+*.a
+
+.vscode/settings.json
