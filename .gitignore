@@ -3,5 +3,10 @@
 *.o
 *.so
 *.a
+target
 
-.vscode/settings.json
+# for vscode
+.vscode
+
+# for vim
+*.swp

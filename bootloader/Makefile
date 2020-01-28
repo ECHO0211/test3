@@ -1,96 +1,52 @@
-#
-#  Copyright (C) 1999-2001 Hewlett-Packard Co.
-#	Contributed by David Mosberger <davidm@hpl.hp.com>
-#	Contributed by Stephane Eranian <eranian@hpl.hp.com>
-#
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions
-#    are met:
-#
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
-#    * Redistributions in binary form must reproduce the above
-#      copyright notice, this list of conditions and the following
-#      disclaimer in the documentation and/or other materials
-#      provided with the distribution.
-#    * Neither the name of Hewlett-Packard Co. nor the names of its
-#      contributors may be used to endorse or promote products derived
-#      from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-#    CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-#    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-#    MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-#    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
-#    BE LIABLE FOR ANYDIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
-#    OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-#    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-#    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-#    TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-#    THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-#    SUCH DAMAGE.
-#
+CC			= 	gcc
+LD			= 	ld
+OBJCOPY		= 	objcopy
 
-SRCDIR = .
+ARCH        = 	x86_64
 
-VPATH = $(SRCDIR)
+GNUEFIDIR   = 	./gnu-efi
 
-include $(SRCDIR)/gnu-efi/Make.defaults
+CFLAGS		+= 	-Wno-error=pragmas -Wall -Wextra -Werror \
+  			  	-mno-red-zone -mno-avx \
+  				-fpic -fshort-wchar -fno-strict-aliasing -ffreestanding -fno-stack-protector -fno-stack-check -fno-merge-all-constants \
+  				-DCONFIG_x86_64 -DGNU_EFI_USE_MS_ABI -maccumulate-outgoing-args
 
-TOPDIR = $(SRCDIR)/gnu-efi
+CFLAGS		+=	-Ignu-efi/inc -Ignu-efi/inc/x86_64 -Ignu-efi/inc/protocol
 
-CDIR=$(TOPDIR)/..
-LINUX_HEADERS	= /usr/src/sys/build
-CPPFLAGS	+= -D__KERNEL__ -I$(LINUX_HEADERS)/include
-CRTOBJS		= $(TOPDIR)/$(ARCH)/gnuefi/crt0-efi-$(ARCH).o
+CPPFLAGS	+= 	-D__KERNEL__
+CRTOBJS		= 	$(GNUEFIDIR)/$(ARCH)/gnuefi/crt0-efi-$(ARCH).o
 
-LDSCRIPT	= $(TOPDIR)/gnuefi/elf_$(ARCH)_efi.lds
-ifneq (,$(findstring FreeBSD,$(OS)))
-LDSCRIPT	= $(TOPDIR)/gnuefi/elf_$(ARCH)_fbsd_efi.lds
-endif
+LDSCRIPT	= 	$(GNUEFIDIR)/gnuefi/elf_$(ARCH)_efi.lds
+LDFLAGS		+=	-nostdlib --warn-common --no-undefined --fatal-warnings --build-id=sha1
+LDFLAGS		+= 	-shared -Bsymbolic -L$(GNUEFIDIR)/$(ARCH)/lib -L$(GNUEFIDIR)/$(ARCH)/gnuefi $(CRTOBJS)
 
-LDFLAGS		+= -shared -Bsymbolic -L$(TOPDIR)/$(ARCH)/lib -L$(TOPDIR)/$(ARCH)/gnuefi $(CRTOBJS)
+LOADLIBES	+= 	-lefi -lgnuefi
+LDFLAGS	    += 	-T $(LDSCRIPT)
 
-LOADLIBES	+= -lefi -lgnuefi
-LOADLIBES	+= $(LIBGCC)
-LOADLIBES	+= -T $(LDSCRIPT)
+$(BLDDIR)	?=	.
 
-TARGET = boot.efi
+TARGET 		= 	$(BLDDIR)/bootx64.efi
 
-ifneq ($(HAVE_EFI_OBJCOPY),)
+FORMAT		:= 	--target efi-app-$(ARCH)
 
-FORMAT		:= --target efi-app-$(ARCH)
-$(TARGET_BSDRIVERS): FORMAT=--target efi-bsdrv-$(ARCH)
-$(TARGET_RTDRIVERS): FORMAT=--target efi-rtdrv-$(ARCH)
-
-else
-
-SUBSYSTEM	:= 0xa
-$(TARGET_BSDRIVERS): SUBSYSTEM = 0xb
-$(TARGET_RTDRIVERS): SUBSYSTEM = 0xc
-
-FORMAT		:= -O binary
-LDFLAGS		+= --defsym=EFI_SUBSYSTEM=$(SUBSYSTEM)
-
-endif
-
-all: $(BLDDIR)/bootx64.efi
-
-# 复制这个Makefile的输出到指定的目录
-$(BLDDIR)/bootx64.efi:$(CRTOBJS) $(TARGET)
-	cp $(TARGET) $(BLDDIR)/bootx64.efi
+all: $(CRTOBJS) $(TARGET)
 
 $(CRTOBJS):
 	$(MAKE) -C gnu-efi
 
+%.o: %.c
+	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+bootloader.so: *.o
+	$(LD) $(LDFLAGS) $^ -o $@ $(LOADLIBES)
+
+$(TARGET): bootloader.so
+	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
+		    -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela* \
+		    -j .reloc $(FORMAT) $< $@
+
 .PHONY: clean
 clean:
-	rm -f $(TARGETS) *~ *.o *.so
-	rm -f $(BLDDIR)/bootx64.efi
+	rm -f $(TARGET) *~ *.o *.so
+#	$(MAKE) -C gnu-efi clean
 
-.PHONY: install
-
-include $(SRCDIR)/gnu-efi/Make.rules
