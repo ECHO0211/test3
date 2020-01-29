@@ -29,17 +29,10 @@ TARGET 		= 	$(BLDDIR)/EFI/Boot/bootx64.efi
 
 FORMAT		:= 	--target efi-app-$(ARCH)
 
-<<<<<<< HEAD
 SOURCE		:=	$(wildcard *.c)
 SRCOBJS		:=	$(patsubst %.c, %.o, $(SOURCE))
 
 all: $(CRTOBJS) $(TARGET)
-=======
-all: $(CRTOBJS) $(BLDDIR)/EFI/Boot/ $(TARGET)
-
-$(BLDDIR)/EFI/Boot/:
-	  mkdir -p $@
->>>>>>> f6db450ddbb0bc27513d3b95b9cc83be53fcdaa6
 
 $(CRTOBJS):
 	$(MAKE) -C gnu-efi

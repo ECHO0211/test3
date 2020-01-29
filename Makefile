@@ -2,7 +2,7 @@
 BLDDIR = $(shell pwd)/target/
 
 # 要生成的东西
-TARGET = bootx64.efi kernel
+TARGET = EFI/Boot/bootx64.efi kernel
 
 # 让子Makefile知道这个变量
 export BLDDIR
