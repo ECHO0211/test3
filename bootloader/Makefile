@@ -29,15 +29,18 @@ TARGET 		= 	$(BLDDIR)/bootx64.efi
 
 FORMAT		:= 	--target efi-app-$(ARCH)
 
+SOURCE		:=	$(wildcard *.c)
+SRCOBJS		:=	$(patsubst %.c, %.o, $(SOURCE))
+
 all: $(CRTOBJS) $(TARGET)
 
 $(CRTOBJS):
 	$(MAKE) -C gnu-efi
 
-%.o: %.c
+$(SRCOBJS): %.o: %.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
-bootloader.so: *.o
+bootloader.so: $(SRCOBJS)
 	$(LD) $(LDFLAGS) $^ -o $@ $(LOADLIBES)
 
 $(TARGET): bootloader.so
