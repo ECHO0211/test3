@@ -31,5 +31,6 @@ clean:
 	$(MAKE) -C kernel clean
 
 # 伪目标，执行 make qemu 时开启仿真器进行模拟，并启用调试模式，等待gdb连接
+.PHONY: all
 qemu: all
 	qemu-system-x86_64 -bios utils/OVMF.fd -drive file=fat:rw:target,format=raw -gdb tcp::1234 -S -d in_asm

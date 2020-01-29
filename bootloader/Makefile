@@ -47,11 +47,7 @@ $(TARGET): bootloader.so
 	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
 		    -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela* \
 		    -j .reloc $(FORMAT) $< $@
-
-	qemu:all
-			qemu-system-x86_64 -bios  ~/test3/utils/OVMF.fd -drive file=fat:rw:target,format=raw
-	
-
+			
 .PHONY: clean
 clean:
 	rm -f $(TARGET) *~ *.o *.so
