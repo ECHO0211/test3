@@ -25,14 +25,21 @@ LDFLAGS	    += 	-T $(LDSCRIPT)
 
 $(BLDDIR)	?=	.
 
-TARGET 		= 	$(BLDDIR)/bootx64.efi
+TARGET 		= 	$(BLDDIR)/EFI/Boot/bootx64.efi
 
 FORMAT		:= 	--target efi-app-$(ARCH)
 
+<<<<<<< HEAD
 SOURCE		:=	$(wildcard *.c)
 SRCOBJS		:=	$(patsubst %.c, %.o, $(SOURCE))
 
 all: $(CRTOBJS) $(TARGET)
+=======
+all: $(CRTOBJS) $(BLDDIR)/EFI/Boot/ $(TARGET)
+
+$(BLDDIR)/EFI/Boot/:
+	  mkdir -p $@
+>>>>>>> f6db450ddbb0bc27513d3b95b9cc83be53fcdaa6
 
 $(CRTOBJS):
 	$(MAKE) -C gnu-efi
@@ -47,6 +54,10 @@ $(TARGET): bootloader.so
 	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
 		    -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela* \
 		    -j .reloc $(FORMAT) $< $@
+
+	qemu:all
+			qemu-system-x86_64 -bios  ~/test3/utils/OVMF.fd -drive file=fat:rw:target,format=raw
+	
 
 .PHONY: clean
 clean:
